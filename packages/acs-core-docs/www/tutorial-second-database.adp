@@ -1,5 +1,5 @@
 
-<property name="context">{/doc/acs-core-docs {Documentation}} {Connect to a second database}</property>
+<property name="context">{/doc/acs-core-docs {ACS Core Documentation}} {Connect to a second database}</property>
 <property name="doc(title)">Connect to a second database</property>
 <master>
 <include src="/packages/acs-core-docs/lib/navheader"
@@ -72,8 +72,9 @@ ns_param pools_legacy [list legacy]
 </pre>
 </li><li class="listitem">
 <p>To use the legacy database, use the <code class="code">-dbn</code> flag for any of the <code class="code">db_</code> API calls. For example, suppose there is a table
-called "foo" in the legacy system, with a field "bar". List "bar"
-for all records with this tcl file:</p><pre class="programlisting">
+called "foo" in the legacy system, with a field
+"bar". List "bar" for all records with this tcl
+file:</p><pre class="programlisting">
 db_foreach -dbn legacy get_bar_query {
   select bar from foo
   limit 10

@@ -90,12 +90,25 @@ foreach package_key $install_order {
     array set version $repository($package_key)
     
     if { ([info exists version(download_url)] && $version(download_url) ne "") } {
+        ns_write [subst {
+            <p>Transferring $version(download_url) ...
+            <script nonce='$::__csp_nonce'>window.scrollTo(0,document.body.scrollHeight);</script>
+        }]
         set spec_file [apm_load_apm_file -url $version(download_url)]
         if { $spec_file eq "" } {
-            ns_log Error "Error downloading package $package_key from $version(download_url). Installing package failed."
+            set msg "Error downloading package $package_key from $version(download_url). Installing package failed."
+            ns_write [subst {
+                <p>$msg
+                <script nonce='$::__csp_nonce'>window.scrollTo(0,document.body.scrollHeight);</script>
+            }]
+            ns_log Error $msg
             set success_p 0
             continue
         }
+        ns_write [subst {
+            Done<br>
+            <script nonce='$::__csp_nonce'>window.scrollTo(0,document.body.scrollHeight);</script>
+        }]
         set package_path "[apm_workspace_install_dir]/$package_key"
     } else {
         set spec_file $version(path)
@@ -139,13 +152,14 @@ foreach package_key $install_order {
 
     ns_write [subst {
 	<p>Installing $package_key ...<br>
-	<script>window.scrollTo(0,document.body.scrollHeight);</script>
+	<script nonce='$::__csp_nonce'>window.scrollTo(0,document.body.scrollHeight);</script>
     }]
     
     # Install the package -- this actually copies the files into the
     # right place in the file system and backs up any old files
     set version_id [apm_package_install \
                         -enable \
+                        -install_from_repository \
                         -package_path $package_path \
                         -load_data_model \
                         -data_model_files $data_model_files \
@@ -160,7 +174,7 @@ foreach package_key $install_order {
 	ns_write "... installation OK <br>\n"
     }
     ns_write {
-	<script>window.scrollTo(0,document.body.scrollHeight);</script>
+	<script nonce='$::__csp_nonce'>window.scrollTo(0,document.body.scrollHeight);</script>
     }
 }
 

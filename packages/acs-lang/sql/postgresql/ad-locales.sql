@@ -71,6 +71,8 @@ create table ad_locale_user_prefs (
                         references ad_locales (locale) on delete cascade
 );
 
+create index ad_locale_user_prefs_user_id_idx on ad_locale_user_prefs(user_id);
+
 -- alter user_preferences to add the locale column
 
 alter table user_preferences add

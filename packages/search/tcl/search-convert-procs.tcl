@@ -22,6 +22,13 @@ ad_proc -public search::convert::binary_to_text {
     @creation-date 2005-06-25
 } {
 
+    if {[file size $filename] == 0} {
+        #
+        # Some conversion programs choke on empty content
+        #
+        return ""
+    }
+
     set tmp_filename [ad_tmpnam]
     set result ""
 
@@ -32,14 +39,14 @@ ad_proc -public search::convert::binary_to_text {
         }
         application/msexcel -
         application/vnd.ms-excel {
-            set convert_command {xls2csv $filename >$tmp_filename}
+            set convert_command {xls2csv $filename >$tmp_filename 2> /dev/null}
         }
         application/mspowerpoint -
         application/vnd.ms-powerpoint {
             set convert_command {catppt $filename >$tmp_filename}
         }
         application/pdf {
-            set convert_command {pdftotext $filename $tmp_filename}
+            set convert_command {pdftotext -q $filename $tmp_filename}
         }
         application/vnd.oasis.opendocument.text -
         application/vnd.oasis.opendocument.text-template -
@@ -80,7 +87,6 @@ ad_proc -public search::convert::binary_to_text {
     if {[catch {eval exec $convert_command} err]} {
         catch {file delete $tmp_filename}
         ns_log Error "SEARCH: conversion failed - $convert_command: $err"
-        file delete $tmp_filename
         return
     }
 

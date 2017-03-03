@@ -780,6 +780,7 @@ ad_proc -public subsite::get_theme_options {} {
     return $master_theme_options
 }
 
+
 ad_proc -public subsite::set_theme {
     -subsite_id
     {-theme:required}
@@ -795,6 +796,8 @@ ad_proc -public subsite::set_theme {
     if { ![info exists subsite_id] } {
         set subsite_id [ad_conn subsite_id]
     }
+
+    set old_theme [subsite::get_theme -subsite_id $subsite_id]
 
     db_1row get_theme_paths {}
 
@@ -818,11 +821,32 @@ ad_proc -public subsite::set_theme {
         -value $resource_dir
     parameter::set_value -parameter StreamingHead -package_id $subsite_id \
         -value $streaming_head
+
+    
+    callback subsite::theme_changed \
+        -subsite_id $subsite_id \
+        -old_theme $old_theme \
+        -new_theme $theme
 }
 
-ad_proc -public subsite::save_theme_parameters_as_default {
+ad_proc -public -callback subsite::theme_changed {
+    -subsite_id:required
+    -old_theme:required
+    -new_theme:required
+} {
+
+    Callback for executing code after the subsite theme has been send changed
+    
+    @param subsite_id subsite, of which the theme was changed
+    @param old_theme the old theme
+    @param new_theme the new theme
+} -
+
+
+ad_proc -public subsite::save_theme_parameters {
     -subsite_id
     -theme
+    -local_p 
 } {
     Save the actual theming parameter set of the given/current subsite
     as default for the given/current theme. These default values are
@@ -858,9 +882,51 @@ ad_proc -public subsite::save_theme_parameters_as_default {
         -list_filter_template [parameter::get -parameter DefaultListFilterStyle  -package_id $subsite_id] \
         -dimensional_template [parameter::get -parameter DefaultDimensionalStyle -package_id $subsite_id] \
         -resource_dir         [parameter::get -parameter ResourceDir             -package_id $subsite_id] \
-        -streaming_head       [parameter::get -parameter StreamingHead           -package_id $subsite_id] 
+        -streaming_head       [parameter::get -parameter StreamingHead           -package_id $subsite_id] \
+        -local_p              $local_p
         
 }
+
+ad_proc -public subsite::save_theme_parameters_as {
+    -subsite_id
+    -theme:required
+    -pretty_name:required
+} {
+    Save the actual theming parameter for the given/current subsite
+    under a new name.
+
+    @param subsite_id Id of the subsite
+    @param theme Name of the theme (theme key)
+    @param pretty_theme Pretty Name (of the theme)
+
+    @author Gustaf Neumann
+} {
+
+    if { ![info exists subsite_id] } {
+        set subsite_id [ad_conn subsite_id]
+    }
+
+    set exists_p [db_string get_theme_name {select 1 from subsite_themes where key = :theme} -default 0]
+    if {$exists_p} {
+        error "subsite theme with key $theme exists already"
+    }
+
+    subsite::new_subsite_theme \
+        -key                  $theme \
+        -name                 $pretty_name \
+        -template             [parameter::get -parameter DefaultMaster           -package_id $subsite_id] \
+        -css                  [parameter::get -parameter ThemeCSS                -package_id $subsite_id] \
+        -js                   [parameter::get -parameter ThemeJS                 -package_id $subsite_id] \
+        -form_template        [parameter::get -parameter DefaultFormStyle        -package_id $subsite_id] \
+        -list_template        [parameter::get -parameter DefaultListStyle        -package_id $subsite_id] \
+        -list_filter_template [parameter::get -parameter DefaultListFilterStyle  -package_id $subsite_id] \
+        -dimensional_template [parameter::get -parameter DefaultDimensionalStyle -package_id $subsite_id] \
+        -resource_dir         [parameter::get -parameter ResourceDir             -package_id $subsite_id] \
+        -streaming_head       [parameter::get -parameter StreamingHead           -package_id $subsite_id] \
+        -local_p              true
+        
+}
+
 
 
 ad_proc -public subsite::get_theme {
@@ -889,9 +955,13 @@ ad_proc -public subsite::new_subsite_theme {
     {-dimensional_template ""}
     {-resource_dir ""}
     {-streaming_head ""}
+    {-local_p true}
 } {
     Add a new subsite theme, making it available to the theme configuration code.
 } {
+    # the following line is for Oracle compatibility
+    set local_p [expr {$local_p ? "t" : "f"}]
+    
     db_dml insert_subsite_theme {}
 }
 
@@ -907,11 +977,15 @@ ad_proc -public subsite::update_subsite_theme {
     {-dimensional_template ""}
     {-resource_dir ""}
     {-streaming_head ""}
+    {-local_p false}
 } {
     Update the default theming parameters in the database
 
     @author Gustaf Neumann
 } {
+    # the following line is for Oracle compatibility
+    set local_p [expr {$local_p ? "t" : "f"}]
+    
     db_dml update {
       update subsite_themes
         set name = :name,
@@ -923,11 +997,14 @@ ad_proc -public subsite::update_subsite_theme {
             list_filter_template = :list_filter_template,
             dimensional_template = :dimensional_template,
             resource_dir = :resource_dir,
-            streaming_head = :streaming_head
+            streaming_head = :streaming_head,
+            local_p = :local_p
      where
         key = :key
     }
 }
+
+
 
 ad_proc -public subsite::delete_subsite_theme {
     -key:required

@@ -83,18 +83,15 @@ ad_proc -public lc_parse_number {
 	error "Not a number $num"
     } else {
 
-	regsub -all "$thou" $number "" number
+	regsub -all $thou $number "" number
 
 	if {!$integer_only_p} {
-	    regsub -all "$dec" $number "." number
+	    regsub -all $dec $number "." number
 	}
 
-
-	# Strip leading zeros
-	regexp -- "0*(\[0-9\.\]+)" $number match number
+        set number [util::trim_leading_zeros $number]
 	
-	# if number is real and mod(number)<1, then we have pulled off the leading zero; i.e. 0.231 -> .231 -- this is still fine for tcl though...
-	# Last pathological case
+        # Last pathological case
 	if {"." eq $number } {
 	    set number 0
 	}
@@ -305,7 +302,7 @@ ad_proc -public lc_time_fmt {
         return ""
     }
 
-    if { (![info exists locale] || $locale eq "") } {
+    if { $locale eq "" } {
         set locale [ad_conn locale]
     }
     
@@ -326,7 +323,8 @@ ad_proc -public lc_time_fmt {
 	    error "Invalid date: $datetime"
 	}
     }
-
+    set lc_time_year [util::trim_leading_zeros $lc_time_year]
+    
     set a [expr {(14 - $lc_time_month) / 12}]
     set y [expr {$lc_time_year - $a}]
     set m [expr {$lc_time_month + 12*$a - 2}]

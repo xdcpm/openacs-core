@@ -1,18 +1,21 @@
 ad_library {
     ADP to Tcl Compiler for the ArsDigita Templating System,
-    Based on the original ADP to Tcl compiler by Jon Salz (jsalz@mit.edu)
-
-    Copyright (C) 1999-2000 ArsDigita Corporation
-
-    This is free software distributed under the terms of the GNU Public
-    License.  Full text of the license is available from the GNU Project:
-    http://www.fsf.org/copyleft/gpl.html
 
     @author Karl Goldstein
     @author Stanislav Freidin
+    @author Jon Salz
 
     @cvs-id $Id$
 }
+
+# Based on the original ADP to Tcl compiler by Jon Salz (jsalz@mit.edu)
+
+# Copyright (C) 1999-2000 ArsDigita Corporation
+
+# This is free software distributed under the terms of the GNU Public
+# License.  Full text of the license is available from the GNU Project:
+# http://www.fsf.org/copyleft/gpl.html
+
 
 namespace eval template {}
 
@@ -507,7 +510,7 @@ ad_proc -public template::adp_compile { {-file ""} {-string ""} } {
     # avoid substituting when it is a percentage attribute to an HTML tag.
     regsub -all {([^0-9])%>} $chunk {\1</tcl>} chunk
     # warn about the first ambiguity in the source
-    if [regexp {[0-9]+%>} $chunk match] {
+    if {[regexp {[0-9]+%>} $chunk match]} {
         ns_log warning "ambiguous '$match'; write Tcl escapes with a space like\
       <% set x 50 %> and HTML tags with proper quoting, like <hr width=\"50%\">\
       when compiling ADP source: template::adp_compile $source_type {$source}"

@@ -1,5 +1,5 @@
 
-<property name="context">{/doc/acs-core-docs {Documentation}} {Notifications}</property>
+<property name="context">{/doc/acs-core-docs {ACS Core Documentation}} {Notifications}</property>
 <property name="doc(title)">Notifications</property>
 <master>
 <include src="/packages/acs-core-docs/lib/navheader"
@@ -93,7 +93,7 @@ with the above script.</p><pre class="programlisting">
       -- \@creation-date 2002-05-16
       --
       -- This code is newly concocted by Ben, but with significant concepts and code
-      -- lifted from Gilbert's UBB forums. Thanks Orchard Labs.
+      -- lifted from Gilbert&#39;s UBB forums. Thanks Orchard Labs.
       -- Lars and Jade in turn lifted this from gwong and ben.
 
 create function inline_0 ()

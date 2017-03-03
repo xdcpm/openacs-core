@@ -211,7 +211,7 @@ ad_proc -public auth::authenticate {
             }
             return [array get result]
         }
-        set user_id [cc_lookup_email_user $email]
+        set user_id [party::get_by_email -email $email]
         if { $user_id eq "" } {
             set result(auth_status) "no_account"
             set result(auth_message) [_ acs-subsite.Unknown_email]
@@ -390,7 +390,7 @@ ad_proc -private auth::get_register_authority {
     set parameter_value [parameter::get_from_package_key -parameter RegisterAuthority -package_key "acs-authentication"]
 
     # Catch the case where somebody has set the parameter to some non-existant authority
-    if { [lsearch [auth::authority::get_short_names] $parameter_value] != -1} {
+    if {$parameter_value in [auth::authority::get_short_names]} {
         # The authority exists
         set authority_id [auth::authority::get_id -short_name $parameter_value]
 
@@ -1684,17 +1684,23 @@ ad_proc -private auth::can_admin_system_without_authority_p {
 
     @author Peter Marklund
 } {
+    #
+    # Count all users from other authorities having swa admins (having
+    # admin rights on the magic object 'security_context_root').
+    #
     set number_of_admins_left [db_string count_admins_left {
-        select count(*)
-        from cc_users u,
-             acs_object_party_privilege_map pm,
-             acs_magic_objects mo
-        where authority_id <> :authority_id
-        and pm.privilege = 'admin'
-        and pm.object_id = mo.object_id
-        and mo.name = 'security_context_root'
-        and pm.party_id = u.user_id
-        and u.member_state = 'approved'
+       select count(*)
+	   from acs_permissions p,
+	        party_approved_member_map m,
+	        acs_magic_objects amo,
+	        cc_users u
+	   where amo.name = 'security_context_root'
+	     and p.object_id = amo.object_id
+	     and p.grantee_id = m.party_id
+	     and u.user_id = m.member_id
+	     and u.member_state = 'approved'
+	     and u.authority_id <> :authority_id
+	     and acs_permission.permission_p(amo.object_id, u.user_id, 'admin')
     }]
 
     return [ad_decode $number_of_admins_left "0" "0" "1"]

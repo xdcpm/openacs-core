@@ -160,7 +160,7 @@ ad_proc lang::util::replace_temporary_tags_with_lookups {
     if { [file exists $catalog_file_path] } {
         set catalog_file_contents [lang::catalog::read_file $catalog_file_path]
         array set catalog_array [lang::catalog::parse $catalog_file_contents]            
-        array set messages_array [lindex [array get catalog_array messages] 1]            
+        array set messages_array $catalog_array(messages)
     } else {
         array set messages_array {}
     }
@@ -223,12 +223,11 @@ ad_proc lang::util::replace_temporary_tags_with_lookups {
             set key_comp_counter "0"
             set unique_key $message_key
             while { 1 } {
-                set existing_text [lindex [array get messages_array $unique_key] 1]
 
-                if { $existing_text ne "" } {
+                if { [info exists messages_array($unique_key)] } {
                     # The key already exists
-
-                    if {$existing_text eq $new_text} {
+                    
+                    if {$messages_array($unique_key) eq $new_text} {
                         # New and old texts are identical - don't add the key
                         ns_log Notice [list lang::util::replace_temporary_tags_with_lookups - \
                                        message key $unique_key already exists in catalog \
@@ -665,6 +664,9 @@ ad_proc -public lang::util::translator_mode_p {} {
     if { [ad_conn isconnected] } {
         # There is an HTTP connection - return the client property
         set ::acs_translator_mode_p [ad_get_client_property -default 0 acs-lang translator_mode_p]
+        if {$::acs_translator_mode_p eq ""} {
+            set ::acs_translator_mode_p 0
+        }
     } else {
         # No HTTP connection
         set ::acs_translator_mode_p 0
@@ -830,7 +832,9 @@ ad_proc -public lang::util::edit_lang_key_url {
 } {
 } {
     if { [regsub "^${package_key}." [string trim $message "\#"] {} message_key] } {
-	 set edit_url [export_vars -base "[apm_package_url_from_key "acs-lang"]admin/edit-localized-message" { { locale {[ad_conn locale]} } package_key message_key { return_url [ad_return_url] } }]
+        set edit_url [export_vars -base "[apm_package_url_from_key "acs-lang"]admin/edit-localized-message" {
+            { locale {[ad_conn locale]} } package_key message_key { return_url [ad_return_url] }
+        }]
      } else {
 	 set edit_url ""
      }

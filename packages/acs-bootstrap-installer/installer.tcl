@@ -319,6 +319,17 @@ proc install_admin_widget {} {
 
 }
 
+proc install_back_button_widget {} {    
+    return [subst {Please <a id="install-back-button" href="#">try again</a>.
+    <script type='text/javascript' nonce='[security::csp::nonce]'>
+     var e = document.getElementById('install-back-button');
+     e.addEventListener('click', function (event) {
+        event.preventDefault();
+        history.back();
+     }, false);
+    </script>}]
+}
+
 proc install_redefine_ad_conn {} {
 
     # Peter Marklund
@@ -445,6 +456,8 @@ ad_proc -private install_do_packages_install {} {
             } -default 0]
             if {$kernel_id > 0} {
                 proc ad_acs_kernel_id {} "return $kernel_id"
+                ns_log notice "installer: setting ::acs::kernel_id to $kernel_id"
+                set ::acs::kernel_id $kernel_id
             }
             return $kernel_id
         } else {
@@ -480,12 +493,19 @@ ad_proc -private install_do_packages_install {} {
         ns_write "<p><b><i>At least one core package has an unsatisifed dependency.\
               No packages have been installed missing: [lindex $dependency_results 2]. \
               Here's what the APM has computed:</i></b>"
-
+        
         ns_write "\n<ul>"
+        set deps ""
         foreach dep $pkg_list {
             lassign $dep _name _path _a _b _pkg _deps _flag _msg
             ns_write "<li>[lindex $_pkg 0]: $_msg</li>"
+            append deps "[lindex $_pkg 0]: $_msg\n"
         }
+        
+        ns_log Error "At least one core package has an unsatisifed dependency.\
+              No packages have been installed missing: [lindex $dependency_results 2]. \
+              Here's what the APM has computed:\n$deps"
+
         return
     }
 

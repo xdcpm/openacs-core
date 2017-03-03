@@ -109,9 +109,10 @@ ad_proc -private apm_package_selection_widget {
         return ""
     }
 
+    set label [dict get {install Install upgrade Upgrade all Install/Update} $operation]
     set counter 0
-    set widget "<blockquote><table class='list-table' cellpadding='3' cellspacing='5' summary='Available Packages'>
-      <tr class='list-header'><th>Install</th><th>Package</th><th>Package Key</th><th>Comment</th></tr>"
+    set widget [subst {<blockquote><table class='list-table' cellpadding='3' cellspacing='5' summary='Available Packages'>
+        <tr class='list-header'><th>$label</th><th>Package</th><th>Package Key</th><th>Comment</th></tr>}]
 
     foreach pkg_info $pkg_info_list {
         
@@ -296,6 +297,14 @@ ad_proc -private apm_build_repository {
             lassign [split $oacs_version "-"] major_version minor_version
             if { $major_version >= 5 && $minor_version >= 3} {
                 set channel "${major_version}-${minor_version}"
+                ns_log Notice "Repository: Found channel $channel using tag $tag_name"
+                set channel_tag($channel) $tag_name
+            }
+        } elseif { [regexp {^openacs-([1-9][0-9]*-[0-9]+-[0-9]+)-final$} $tag_name match oacs_version] } {
+            lassign [split $oacs_version "-"] major_version minor_version patch_version
+            #ns_log Notice "Repository: tag <$tag_name> oacs version <$oacs_version> split into /$major_version/$minor_version/$patch_version/"
+            if { $major_version >= 5 && $minor_version >= 8} {
+                set channel "${major_version}-${minor_version}-$patch_version"
                 ns_log Notice "Repository: Found channel $channel using tag $tag_name"
                 set channel_tag($channel) $tag_name
             }
@@ -491,7 +500,7 @@ ad_proc -private apm_build_repository {
         set fw [open "${channel_dir}index.adp" w]
         set packages [lsort $packages]
         puts $fw "<master>\n<property name=\"doc(title)\">OpenACS $channel Compatible Packages</property>\n\n"
-        puts $fw "<h1>OpenACS $channel Core and compatibile packages</h1>
+        puts $fw "<h1>OpenACS $channel Core and compatible packages</h1>
            <p>Packages can be installed with the OpenACS Automated Installer on
            your OpenACS site at <code>/acs-admin/install</code>.  Only packages
            designated compatible with your OpenACS kernel will be shown.</p>
@@ -576,9 +585,21 @@ ad_proc -private apm_build_repository {
     ns_log Notice "Repository: Finishing Repository"
 
     foreach channel [array names channel_tag] {
-        regexp {^([1-9][0-9]*)-([0-9]+)$} $channel . major minor
-        set tag_order([format %.3d $major]-[format %.3d $minor]) $channel
-        set tag_label($channel) "OpenACS $major.$minor"
+        if {[regexp {^([1-9][0-9]*)-([0-9]+)$} $channel . major minor]} {
+            #
+            # *-compat channels: The "patchlevel" of these channels is
+            # the highest possible value, higher than the released
+            # -final channels.
+            #
+            set tag_order([format %.3d $major]-[format %.3d $minor]-999) $channel
+            set tag_label($channel) "OpenACS $major.$minor"
+        } elseif {[regexp {^([1-9][0-9]*)-([0-9]+)-([0-9]+)$} $channel . major minor patch]} {
+            #
+            # *-final channels: a concrete patchlevel is provided.
+            #
+            set tag_order([format %.3d $major]-[format %.3d $minor]-[format %.3d $patch]) $channel
+            set tag_label($channel) "OpenACS $major.$minor.$patch"
+        }
     }
 
     
@@ -595,6 +616,10 @@ ad_proc -private apm_build_repository {
                   [list &channels channels update_pretty_date $update_pretty_date]]
     close $fw
 
+    # Add a redirector for outdated releases
+    set fw [open "${work_dir}repository/index.vuh" w]
+    puts $fw "ns_returnredirect /repository/"
+    close $fw
 
     # Without the trailing slash
     set work_repository_dirname "${work_dir}repository"

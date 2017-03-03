@@ -49,9 +49,41 @@ proc ad_make_relative_path { path } {
 
 proc ad_get_tcl_call_stack { { level -2 }} {
     set stack ""
+    #
+    # keep the previous state of ::errorInfo
+    #
+    set errorInfo $::errorInfo
+    
     for { set x [expr {[info level] + $level}] } { $x > 0 } { incr x -1 } {
-	append stack "    called from [info level $x]\n"
+        set info [info level $x]
+        regsub -all \n $info {\\n} info
+        #
+        # In case, we have an nsf frame, add information about the
+        # current object and the current class to the debug output.
+        #
+        if {![catch {uplevel #$x ::nsf::current} obj]
+            && ![catch {uplevel #$x [list ::nsf::current class]} class]
+        } {
+            set objInfo [list $obj $class]
+            set info "{$objInfo} $info"
+        }
+        #
+        # Don't produce too long lines
+        #
+        if {[string length $info]>200} {
+            set arglist ""
+            foreach arg $info {
+                if {[string length $arg]>40} {set arg [string range $arg 0 40]...}
+                lappend arglist $arg
+            }
+            set info $arglist
+        }
+        append stack "    called from $info\n"
     }
+    #
+    # restore previous state of ::errorInfo
+    #
+    set ::errorInfo $errorInfo
     return $stack
 }
 
@@ -271,6 +303,7 @@ proc ad_proc args {
     set arg_list [lindex $args $i+1]
     if { $n_args_remaining == 3 } {
         # No doc string provided.
+        #ns_log notice "missing doc string for ad_proc $proc_name ([info script])"
         array set doc_elements [list]
 	set doc_elements(main) ""
     } else {
